@@ -6,7 +6,7 @@ mod partition_tests {
 
     #[test]
     fn empty_partition() {
-        let p: Partition<u8> = Partition::new(vec![]);
+        let p: Partition<u8> = Partition::new();
         assert!(p.empty());
     }
 
@@ -23,11 +23,11 @@ mod partition_tests {
     fn min_and_max_partitions() {
         let n = 5;
         let all_parts = Partition::all_partitions((0..n).collect());
-        let max_partition = Partition::new(vec![(0..n).collect()]);
-        let grouped = (0..n).map(|e| {
+        let max_partition = Partition::from(vec![(0..n).collect()]);
+        let grouped: Vec<Vec<_>> = (0..n).map(|e| {
             vec![e]
         }).collect();
-        let min_partition = Partition::new(grouped);
+        let min_partition = Partition::from(grouped);
         assert!(all_parts.contains(&max_partition));
         assert!(all_parts.contains(&min_partition));
     }

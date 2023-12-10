@@ -3,6 +3,7 @@ use std::cmp::Eq;
 use std::fmt::{Display, format, Debug};
 use std::hash::Hash;
 
+
 #[derive(PartialEq, Eq, Debug)]
 pub struct Partition<A> {
     parts: BTreeSet<BTreeSet<A>>,
@@ -31,10 +32,10 @@ impl<A: Display> Display for Partition<A> {
     }
 }
 
-impl<A> Partition<A> where A: Hash + Eq + Ord + Debug + Clone + Copy {
-    pub fn new(junk: Vec<Vec<A>>) -> Self {
-        let mut base = Partition::create_empty();
-        junk.into_iter().for_each(|group| {
+impl<A: Hash + Eq + Ord + Clone + Copy> From<Vec<Vec<A>>> for Partition<A> {
+    fn from(value: Vec<Vec<A>>) -> Self {
+        let mut base = Partition::new();
+        value.into_iter().for_each(|group| {
             let mut new_group = BTreeSet::new();
             group.into_iter().for_each(|e| { new_group.insert(e); });
             // get rid of already defined values
@@ -42,16 +43,19 @@ impl<A> Partition<A> where A: Hash + Eq + Ord + Debug + Clone + Copy {
             base.add(unique);
         });
         base
+       
+    }
+}
+
+impl<A> Partition<A> where A: Hash + Eq + Ord + Clone + Copy {
+    pub fn new() -> Self {
+        Partition { parts: BTreeSet::new() }
     }
 
     // helper for initial construction
     // shove a set into the partition 
     fn add(&mut self, set: BTreeSet<A>) {
         self.parts.insert(set);
-    }
-
-    pub fn create_empty() -> Self {
-        Partition { parts: BTreeSet::new() }
     }
 
     pub fn empty(&self) -> bool {
@@ -70,7 +74,7 @@ impl<A> Partition<A> where A: Hash + Eq + Ord + Debug + Clone + Copy {
     // that was left out
     pub fn all_partitions(orig: Vec<A>) -> Vec<Self> {
         all_partitions(orig).into_iter().map(|p| {
-            Partition::new(p)
+            Partition::from(p)
         }).collect()
     }
 

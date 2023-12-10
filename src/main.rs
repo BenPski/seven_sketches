@@ -3,7 +3,7 @@ mod extras;
 use crate::extras::{bell, factorial, falling_factorial, choose};
 
 fn main() {
-    let p: Partition<u32> = Partition::new(vec![vec![1],vec![1,2]]);
+    let p: Partition<u32> = Partition::from(vec![vec![1],vec![1,2]]);
 //    let p: Partition<u32> = Partition::create_empty();
     println!("Example partition: {}", p);
     println!("Example partition: {:?}", p.full_set());
