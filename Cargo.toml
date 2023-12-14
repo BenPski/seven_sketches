@@ -11,5 +11,8 @@ crate-type = ["lib"]
 name = "sketches"
 path = "src/main.rs"
 
+[dependencies]
+rocket = "0.5.0"
+
 [dev-dependencies]
 
