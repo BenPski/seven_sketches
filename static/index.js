@@ -248,50 +248,55 @@ class Set {
         // of equations all solved at once, but as a first pass doing the 
         // equations on paper and inputing them here
         var points = Object.values(this.nodes);
-        for (var node of points) {
-            node.draw(canvas)
-        }
-        var hull = convex_hull(points);
-        
-        var tangent_points = [];
-        for (var i=0; i<hull.length; i++) {
-            var x1 = hull[i].x;
-            var y1 = hull[i].y;
-            var x2 = hull[(i+1) % hull.length].x;
-            var y2 = hull[(i+1) % hull.length].y;
+        if (points.length == 1) {
+            var x = points[0].x;
+            var y = points[0].y;
+            canvas.beginPath();
+            canvas.arc(x, y, 3*NODE_RADIUS, 0, Math.PI*2);
+            canvas.stroke();
+        } else {
+            var hull = convex_hull(points);
+            
+            var tangent_points = [];
+            for (var i=0; i<hull.length; i++) {
+                var x1 = hull[i].x;
+                var y1 = hull[i].y;
+                var x2 = hull[(i+1) % hull.length].x;
+                var y2 = hull[(i+1) % hull.length].y;
 
-            var m = 3*NODE_RADIUS/Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-            var a1 = x1 + (y2-y1)*m;
-            var b1 = y1 - (x2-x1)*m;
-            var a2 = x2 + (y2-y1)*m;
-            var b2 = y2 - (x2-x1)*m;
+                var m = 3*NODE_RADIUS/Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+                var a1 = x1 + (y2-y1)*m;
+                var b1 = y1 - (x2-x1)*m;
+                var a2 = x2 + (y2-y1)*m;
+                var b2 = y2 - (x2-x1)*m;
 
-            tangent_points.push({x: a1, y: b1});
-            tangent_points.push({x: a2, y: b2});
-        }
-
-        canvas.beginPath();
-        canvas.moveTo(tangent_points[0].x, tangent_points[0].y);
-        for (var i=0; i<tangent_points.length; i++) {
-            var a1 = tangent_points[i].x;
-            var b1 = tangent_points[i].y;
-            var a2 = tangent_points[(i+1) % tangent_points.length].x;
-            var b2 = tangent_points[(i+1) % tangent_points.length].y;
-            if (i % 2 == 0) {
-                // draw line
-                canvas.lineTo(a2, b2);
-            } else {
-                // draw arc
-                var x1 = hull[Math.ceil(i/2) % hull.length].x;
-                var y1 = hull[Math.ceil(i/2) % hull.length].y;
-
-                var start = Math.atan2(b1-y1, a1-x1);
-                var end = Math.atan2(b2-y1, a2-x1);
-                canvas.arc(x1,y1,3*NODE_RADIUS,start,end);
-                
+                tangent_points.push({x: a1, y: b1});
+                tangent_points.push({x: a2, y: b2});
             }
+
+            canvas.beginPath();
+            canvas.moveTo(tangent_points[0].x, tangent_points[0].y);
+            for (var i=0; i<tangent_points.length; i++) {
+                var a1 = tangent_points[i].x;
+                var b1 = tangent_points[i].y;
+                var a2 = tangent_points[(i+1) % tangent_points.length].x;
+                var b2 = tangent_points[(i+1) % tangent_points.length].y;
+                if (i % 2 == 0) {
+                    // draw line
+                    canvas.lineTo(a2, b2);
+                } else {
+                    // draw arc
+                    var x1 = hull[Math.ceil(i/2) % hull.length].x;
+                    var y1 = hull[Math.ceil(i/2) % hull.length].y;
+
+                    var start = Math.atan2(b1-y1, a1-x1);
+                    var end = Math.atan2(b2-y1, a2-x1);
+                    canvas.arc(x1,y1,3*NODE_RADIUS,start,end);
+                    
+                }
+            }
+            canvas.stroke();
         }
-        canvas.stroke();
     }
 
     addDelete(func) {
