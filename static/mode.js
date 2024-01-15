@@ -5,9 +5,7 @@ export class SelectMode {
         this.graph = graph;
         this.name = 'select';
         this.selected = [];
-        this.orig_pos = [];
-        this.orig_x = null;
-        this.orig_y = null;
+        this.offset = [];
     }
 
     mousedown(event) {
@@ -17,33 +15,26 @@ export class SelectMode {
         var [nodes, edges, sets] = this.graph.clicked(x, y);
         if (nodes.length > 0) {
             this.selected = [nodes[0]];
-            this.orig_x = x;
-            this.orig_y = y;
         } else if (edges.length > 0) {
-            this.selected = [edges[0].from, edges[0].to];
-            this.orig_x = x;
-            this.orig_y = y;
+            this.selected = [edges[0]];
         } else if (sets.length > 0) {
-            this.selected = Object.values(sets[0].nodes);
-            this.orig_x = x;
-            this.orig_y = y;
+            this.selected = [sets[0]];
         }
-        this.orig_pos = [];
-        for (const node of this.selected) {
-            node.info.selected = true;
-            this.orig_pos.push({x: node.x, y: node.y});
+        if (this.selected != []) {
+            for (const item of this.selected) {
+                this.offset.push(item.offset({x: x, y: y}));
+                item.info.selected = true;
+            }
         }
     }
     
     mouseup(event) {
         if (this.selected != []) {
-            for (const node of this.selected) {
-                node.info.selected = false;
+            for (const item of this.selected) {
+                item.info.selected = false;
             }
             this.selected = [];
-            this.orig_pos = [];
-            this.orig_x = null;
-            this.orig_y = null;
+            this.offset = [];
         }
     }
     
@@ -51,27 +42,19 @@ export class SelectMode {
         var x = event.offsetX;
         var y = event.offsetY;
         if (this.selected != []) {
-            var dx = x - this.orig_x;
-            var dy = y - this.orig_y;
             for (var i=0; i<this.selected.length; i++) {
-                var node = this.selected[i];
-                var x0 = this.orig_pos[i].x;
-                var y0 = this.orig_pos[i].y;
-                node.x = x0 + dx;
-                node.y = y0 + dy;
+                this.selected[i].move({x: x, y: y}, this.offset[i]);
             }
         }
     }
 
     cleanup() {
         if (this.selected != []) {
-            for (const node of this.selected) {
-                node.info.selected = false;
+            for (const item of this.selected) {
+                item.info.selected = false;
             }
             this.selected = [];
-            this.orig_pos = [];
-            this.orig_x = null;
-            this.orig_y = null;
+            this.offset = [];
         }
     }
 
@@ -121,11 +104,11 @@ export class ArrowMode {
             var start_node = closest_node;
         } else {
             var id = crypto.randomUUID();
-            var start_node = new Node(id, x, y, {});
+            var start_node = new Node(id, x, y);
             this.graph.addNode(start_node);
         }
         var id = crypto.randomUUID();
-        var end_node = new Node(id, x, y, {});
+        var end_node = new Node(id, x, y);
         this.graph.addNode(end_node);
         this.end_node = end_node;
         end_node.info.selected = true;
@@ -186,7 +169,8 @@ export class SetMode {
         var x = event.offsetX;
         var y = event.offsetY;
         var id = crypto.randomUUID();
-        var pointer_node = new Node(id, x, y, {phantom: true});
+        var pointer_node = new Node(id, x, y);
+        pointer_node.info.phantom = true;
         this.pointer = pointer_node;
         this.graph.addNode(pointer_node);
 
@@ -239,7 +223,7 @@ export class NodeMode {
         var x = event.offsetX;
         var y = event.offsetY;
         var id = crypto.randomUUID();
-        var node = new Node(id, x, y, {});
+        var node = new Node(id, x, y);
         this.graph.addNode(node);
         this.selected = node;
         this.selected.info.selected = true;

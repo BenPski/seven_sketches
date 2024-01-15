@@ -110,17 +110,26 @@ export class Graph {
 }
 
 export class Node {
-    constructor(name, x, y, info) {
+    constructor(name, x, y) {
         this.name = name;
         this.x = x;
         this.y = y;
-        this.info = info;
+        this.info = {};
         this.delete_callbacks = [];
     }
 
     // is (x,y) within the node
     touching(x, y) {
         return (this.x - x)**2 + (this.y - y)**2 <= (NODE_RADIUS*2)**2;
+    }
+
+    move(to, offset) {
+        this.x = to.x + offset.x;
+        this.y = to.y + offset.y;
+    }
+
+    offset(cursor) {
+        return {x: this.x - cursor.x, y: this.y - cursor.y}
     }
 
     draw(canvas) {
@@ -200,6 +209,19 @@ export class Edge {
         return within(points, x, y);
     }
 
+    move(to, offset) {
+        this.from.move(to, offset[0]);
+        this.to.move(to, offset[1]);
+    }
+
+    offset(cursor) {
+        const off = [
+            this.from.offset(cursor),
+            this.to.offset(cursor),
+        ];
+        return off;
+    }
+
     draw(canvas) {
         // draw an arrow
         // a line and then a triangle
@@ -210,6 +232,11 @@ export class Edge {
         } else {
             canvas.strokeStyle = "black";
             canvas.fillStyle = "black";
+        }
+        if (this.info.selected) {
+            canvas.lineWidth = 2;
+        } else {
+            canvas.lineWidth = 1;
         }
         //slight offset
         var x1 = this.from.x;
@@ -268,6 +295,7 @@ export class Set {
         this.nodes = {};
         this.name = name;
         this.delete_callbacks = [];
+        this.info = {};
     }
 
     addNode(node) {
@@ -292,6 +320,21 @@ export class Set {
             var [hull, tangent_points] = this.control_points();
             return within(tangent_points, x, y);
         }
+    }
+
+    move(to, offset) {
+        var points = Object.values(this.nodes);
+        for (var i=0; i<points.length; i++) {
+            points[i].move(to, offset[i]);
+        }
+    }
+
+    offset(cursor) {
+        var off = [];
+        for (const node of Object.values(this.nodes)) {
+            off.push(node.offset(cursor));
+        }
+        return off;
     }
 
     // the useful points used for drawing the boundary 
@@ -328,6 +371,13 @@ export class Set {
         // I have a hunch that this could be done with a well setup linear system
         // of equations all solved at once, but as a first pass doing the 
         // equations on paper and inputing them here
+
+        if (this.info.selected) {
+            canvas.lineWidth = 2;
+        } else {
+            canvas.lineWidth = 1;
+        }
+
         var points = Object.values(this.nodes);
         if (points.length == 1) {
             var x = points[0].x;

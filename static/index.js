@@ -21,10 +21,10 @@ var set2 = new Set("2");
 graph.addSet(set);
 graph.addSet(set2);
 
-var nodeA = new Node("A", 10, 10, {});
-var nodeB = new Node("B", 90, 100, {});
-var nodeC = new Node("C", 5, 70, {});
-var nodeD = new Node("D", 200, 80, {});
+var nodeA = new Node("A", 10, 10);
+var nodeB = new Node("B", 90, 100);
+var nodeC = new Node("C", 5, 70);
+var nodeD = new Node("D", 200, 80);
 
 set.addNode(nodeA);
 set.addNode(nodeB);
@@ -65,11 +65,11 @@ const mode_map = {
         'mode': new DeleteMode(graph),
         'hint': 'delete',
     },
-    'Control': {
+    'q': {
         'mode': new ArrowMode(graph),
         'hint': 'arrow creation',
     },
-    'Shift': {
+    's': {
         'mode': new SetMode(graph),
         'hint': 'set creation',
     },
@@ -87,16 +87,20 @@ const mode_map = {
 mode = mode_map['default']['mode'];
 
 document.addEventListener('keydown', function(event) {
+    const key = event.key.toLowerCase();
+    console.log("pressed", key);
     if (mode.name == 'select') {
-        if (event.key in mode_map) {
-            mode = mode_map[event.key]['mode'];
-            mode_display.textContent = 'Mode: ' + mode_map[event.key]['hint'];
+        if (key in mode_map) {
+            mode = mode_map[key]['mode'];
+            mode_display.textContent = 'Mode: ' + mode_map[key]['hint'];
         }
     }
 })
 
 document.addEventListener('keyup', function(event) {
-    if ((event.key in mode_map) && mode_map[event.key]['mode'] == mode) {
+    const key = event.key.toLowerCase();
+    console.log("released", key);
+    if ((key in mode_map) && mode_map[key]['mode'].name == mode.name) {
         mode.cleanup(); // incase something is actively happening
         mode = mode_map['default']['mode'];
         mode_display.textContent = 'Mode: ' + mode_map['default']['hint'];
