@@ -11,7 +11,7 @@ export class Graph {
         if (!(node.name in this.nodes)) {
             this.nodes[node.name] = node;
             node.addDelete((node_name) => {
-                console.log("deleting a node from graph");
+                console.log(`deleting node ${node_name} from graph`);
                 delete this.nodes[node_name];
             });
         }
@@ -23,7 +23,7 @@ export class Graph {
         var edge = new Edge(name, from, to);
         this.edges[name] = edge;
         edge.addDelete((edge_name) => {
-            console.log("deleting an edge from graph");
+            console.log(`deleting edge ${edge_name} from graph`);
             delete this.edges[edge_name]
         });
         return this;
@@ -33,7 +33,7 @@ export class Graph {
         if (!(edge.name in this.edges)) {
             this.edges[edge.name] = edge;
             edge.addDelete((edge_name) => {
-                console.log("deleting an edge from graph");
+                console.log(`deleting edge ${edge_name} from graph`);
                 delete this.edges[edge_name];
             });
         }
@@ -44,7 +44,7 @@ export class Graph {
         if (!(set.name in this.sets)) {
             this.sets[set.name] = set;
             set.addDelete((set_name) => {
-                console.log("deleting a set from graph");
+                console.log(`deleting set ${set_name} from graph`);
                 delete this.sets[set_name];
             });
         }
@@ -64,6 +64,31 @@ export class Graph {
             }
         }
         return node;
+    }
+
+    clicked(x, y) {
+        var nodes = [];
+        var edges = [];
+        var sets = [];
+        for (var node of Object.values(this.nodes)) {
+            if (node.touching(x, y)) {
+                nodes.push(node);
+            }
+        }
+
+        for (var edge of Object.values(this.edges)) {
+            if (edge.touching(x, y)) {
+                edges.push(edge);
+            }
+        }
+
+        for (var set of Object.values(this.sets)) {
+            if (set.touching(x, y)) {
+                sets.push(set);
+            }
+        }
+
+        return [sets, edges, nodes];
     }
 
     draw(canvas) {
@@ -95,7 +120,7 @@ export class Node {
 
     // is (x,y) within the node
     touching(x, y) {
-        return (this.x - x)**2 + (this.y - y)**2 <= NODE_RADIUS**2;
+        return (this.x - x)**2 + (this.y - y)**2 <= (NODE_RADIUS*2)**2;
     }
 
     draw(canvas) {
@@ -115,7 +140,6 @@ export class Node {
     }
 
     addDelete(func) {
-        console.log("add node callback");
         this.delete_callbacks.push(func);
     }
 
@@ -155,6 +179,25 @@ export class Edge {
         this.to.addDelete((node_name) => {
             this.delete();
         });
+    }
+
+    touching(x, y) {
+        var x1 = this.from.x;
+        var y1 = this.from.y;
+        var x2 = this.to.x;
+        var y2 = this.to.y;
+        
+        var m = NODE_RADIUS/Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+        var points = [
+            {x: x2 + m*(y2-y1), y: y2 - m*(x2-x1)},
+            {x: x2 - m*(y2-y1), y: y2 + m*(x2-x1)},
+            {x: x1 - m*(y2-y1), y: y1 + m*(x2-x1)},
+            {x: x1 + m*(y2-y1), y: y1 - m*(x2-x1)},
+        ];
+
+        console.log(points, x, y);
+
+        return within(points, x, y);
     }
 
     draw(canvas) {
@@ -241,6 +284,41 @@ export class Set {
         return this;
     }
 
+    touching(x, y) {
+        if (this.nodes.length == 1) {
+            var point = this.nodes[0];
+            return ((x-point.x)**2 + (y-point.y)**2) <= (3*NODE_RADIUS)**2;
+        } else {
+            var [hull, tangent_points] = this.control_points();
+            return within(tangent_points, x, y);
+        }
+    }
+
+    // the useful points used for drawing the boundary 
+    control_points() {
+        var points = Object.values(this.nodes);
+        var hull = convex_hull(points);
+        
+        var tangent_points = [];
+        for (var i=0; i<hull.length; i++) {
+            var x1 = hull[i].x;
+            var y1 = hull[i].y;
+            var x2 = hull[(i+1) % hull.length].x;
+            var y2 = hull[(i+1) % hull.length].y;
+
+            var m = 3*NODE_RADIUS/Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+            var a1 = x1 + (y2-y1)*m;
+            var b1 = y1 - (x2-x1)*m;
+            var a2 = x2 + (y2-y1)*m;
+            var b2 = y2 - (x2-x1)*m;
+
+            tangent_points.push({x: a1, y: b1});
+            tangent_points.push({x: a2, y: b2});
+        }
+        return [hull, tangent_points]
+
+    }
+
     draw(canvas) {
         canvas.strokeStyle = "black"
         // to draw a set need to know the outer most nodes
@@ -258,24 +336,7 @@ export class Set {
             canvas.arc(x, y, 3*NODE_RADIUS, 0, Math.PI*2);
             canvas.stroke();
         } else {
-            var hull = convex_hull(points);
-            
-            var tangent_points = [];
-            for (var i=0; i<hull.length; i++) {
-                var x1 = hull[i].x;
-                var y1 = hull[i].y;
-                var x2 = hull[(i+1) % hull.length].x;
-                var y2 = hull[(i+1) % hull.length].y;
-
-                var m = 3*NODE_RADIUS/Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-                var a1 = x1 + (y2-y1)*m;
-                var b1 = y1 - (x2-x1)*m;
-                var a2 = x2 + (y2-y1)*m;
-                var b2 = y2 - (x2-x1)*m;
-
-                tangent_points.push({x: a1, y: b1});
-                tangent_points.push({x: a2, y: b2});
-            }
+            var [hull, tangent_points] = this.control_points();
 
             canvas.beginPath();
             canvas.moveTo(tangent_points[0].x, tangent_points[0].y);
@@ -365,3 +426,26 @@ function centroid(points) {
     return [total_x / points.length, total_y / points.length];
 }
 
+// is the point (x, y) with the polygon formed by the list of points
+// form vectors orthogonal to the edge 
+// the points need to be ordered correctly for this to work properly
+function within(points, x, y) {
+    for (var i=0; i<points.length; i++) {
+        var x1 = points[i].x;
+        var y1 = points[i].y;
+        var x2 = points[(i+1) % points.length].x;
+        var y2 = points[(i+1) % points.length].y;
+
+        var vx = y2-y1;
+        var vy = -x2+x1;
+        var px = x-x1;
+        var py = y-y1;
+
+        var dot = px*vx + py*vy;
+        console.log(dot);
+        if (dot > 0) {
+            return false;
+        }
+    }
+    return true;
+}

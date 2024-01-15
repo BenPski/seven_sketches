@@ -1,4 +1,5 @@
 import { Graph, Node, Edge, Set } from "./data.js";
+import { SelectMode, DeleteMode, ArrowMode, SetMode, NodeMode } from "./mode.js";
 
 const canvas = document.getElementById('drawing');
 const context = canvas.getContext('2d');
@@ -10,163 +11,6 @@ const WIDTH = 800;
 
 canvas.width = WIDTH;
 canvas.height = HEIGHT;
-
-// modes
-class SelectMode {
-    constructor() {
-        this.name = 'select';
-        this.selected = null;
-    }
-
-    mousedown(event) {
-        var x = event.offsetX;
-        var y = event.offsetY;
-        var closest_node = graph.closestNode(x, y);
-        if (closest_node !== null && closest_node.touching(x, y)) {
-            this.selected = closest_node;
-            closest_node.info.selected = true;
-        }
-    }
-    
-    mouseup(event) {
-        if (this.selected !== null) {
-            this.selected.info.selected = false;
-            this.selected = null;
-        }
-    }
-    
-    mousemove(event) {
-        if (this.selected !== null) {
-            this.selected.x = event.offsetX;
-            this.selected.y = event.offsetY;
-        }
-    }
-
-}
-
-class DeleteMode {
-    constructor() {
-        this.name = 'delete';
-    }
-
-    mousedown(event) {
-        var x = event.offsetX;
-        var y = event.offsetY;
-        console.log("trying to delete");
-        var closest_node = graph.closestNode(x, y);
-        console.log(closest_node);
-        console.log(closest_node.touching(x,y));
-        if (closest_node !== null && closest_node.touching(x, y)) {
-            closest_node.delete()
-        }  
-    }
-
-    mouseup(event) {
-    }
-
-    mousemove(event) {
-    }
-}
-
-class ArrowMode {
-    constructor() {
-        this.name = 'arrow';
-        this.end_node = null;
-        this.edge = null;
-    }
-
-    mousedown(event) {
-        var x = event.offsetX;
-        var y = event.offsetY;
-        var closest_node = graph.closestNode(x, y);
-        if (closest_node !== null && closest_node.touching(x,y)) {
-            var start_node = closest_node;
-        } else {
-            var id = crypto.randomUUID();
-            var start_node = new Node(id, x, y, {});
-            graph.addNode(start_node);
-        }
-        var id = crypto.randomUUID();
-        var end_node = new Node(id, x, y, {});
-        graph.addNode(end_node);
-        this.end_node = end_node;
-        end_node.info.selected = true;
-        end_node.info.phantom = true;
-        var new_edge = new Edge(crypto.randomUUID(), start_node, end_node);
-        graph.addEdge(new_edge)
-        new_edge.info.phantom = true;
-        this.edge = new_edge;
-    }
-
-    mouseup(event) {
-        var x = event.offsetX;
-        var y = event.offsetY;
-        var closest_node = graph.closestNode(x,y);
-        if (closest_node !== null && closest_node.touching(x, y)) {
-            // swap as the to node for the edge
-            this.edge.set_to(closest_node);
-            delete graph.nodes[this.end_node.name];
-        } else {
-            this.end_node.info.phantom = false;
-            this.end_node.info.selected = false;
-        }
-        this.edge.info.phantom = false;
-        this.edge = null;
-        this.end_node = null;
-
-    }
-
-    mousemove(event) {
-        if (this.end_node !== null) {
-            this.end_node.x = event.offsetX;
-            this.end_node.y = event.offsetY;
-        }
-
-    }
-}
-
-class SetMode {
-    mousedown(event) {
-    }
-
-    mouseup(event) {
-    }
-
-    mousemove(event) {
-    }
-}
-
-class NodeMode {
-    constructor() {
-        this.name = 'node';
-        this.selected = null;
-    }
-
-    mousedown(event) {
-        var x = event.offsetX;
-        var y = event.offsetY;
-        console.log("creating a new node");
-        var id = crypto.randomUUID();
-        var node = new Node(id, x, y, {});
-        graph.addNode(node);
-        this.selected = node;
-        this.selected.info.selected = true;
-    }
-    
-    mouseup(event) {
-        if (this.selected !== null) {
-            this.selected.info.selected = false;
-            this.selected = null;
-        }
-    }
-    
-    mousemove(event) {
-        if (this.selected !== null) {
-            this.selected.x = event.offsetX;
-            this.selected.y = event.offsetY;
-        }
-    }
-}
 
 
 // testing
@@ -218,23 +62,23 @@ canvas.addEventListener('mouseup', function(event) {
 // d -> delete
 const mode_map = {
     'd': {
-        'mode': new DeleteMode(),
+        'mode': new DeleteMode(graph),
         'hint': 'delete',
     },
     'Control': {
-        'mode': new ArrowMode(),
+        'mode': new ArrowMode(graph),
         'hint': 'arrow creation',
     },
     'Shift': {
-        'mode': new SetMode(),
+        'mode': new SetMode(graph),
         'hint': 'set creation',
     },
     'a': {
-        'mode': new NodeMode(),
+        'mode': new NodeMode(graph),
         'hint': 'node creation',
     },
     'default': {
-        'mode': new SelectMode(),
+        'mode': new SelectMode(graph),
         'hint': 'select',
     },
 };
@@ -253,6 +97,7 @@ document.addEventListener('keydown', function(event) {
 
 document.addEventListener('keyup', function(event) {
     if ((event.key in mode_map) && mode_map[event.key]['mode'] == mode) {
+        mode.cleanup(); // incase something is actively happening
         mode = mode_map['default']['mode'];
         mode_display.textContent = 'Mode: ' + mode_map['default']['hint'];
     }
