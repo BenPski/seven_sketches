@@ -4,38 +4,74 @@ export class SelectMode {
     constructor(graph) {
         this.graph = graph;
         this.name = 'select';
-        this.selected = null;
+        this.selected = [];
+        this.orig_pos = [];
+        this.orig_x = null;
+        this.orig_y = null;
     }
 
     mousedown(event) {
         var x = event.offsetX;
         var y = event.offsetY;
         console.log(this.graph.clicked(x, y));
-        var closest_node = this.graph.closestNode(x, y);
-        if (closest_node !== null && closest_node.touching(x, y)) {
-            this.selected = closest_node;
-            closest_node.info.selected = true;
+        var [nodes, edges, sets] = this.graph.clicked(x, y);
+        if (nodes.length > 0) {
+            this.selected = [nodes[0]];
+            this.orig_x = x;
+            this.orig_y = y;
+        } else if (edges.length > 0) {
+            this.selected = [edges[0].from, edges[0].to];
+            this.orig_x = x;
+            this.orig_y = y;
+        } else if (sets.length > 0) {
+            this.selected = Object.values(sets[0].nodes);
+            this.orig_x = x;
+            this.orig_y = y;
+        }
+        this.orig_pos = [];
+        for (const node of this.selected) {
+            node.info.selected = true;
+            this.orig_pos.push({x: node.x, y: node.y});
         }
     }
     
     mouseup(event) {
-        if (this.selected !== null) {
-            this.selected.info.selected = false;
-            this.selected = null;
+        if (this.selected != []) {
+            for (const node of this.selected) {
+                node.info.selected = false;
+            }
+            this.selected = [];
+            this.orig_pos = [];
+            this.orig_x = null;
+            this.orig_y = null;
         }
     }
     
     mousemove(event) {
-        if (this.selected !== null) {
-            this.selected.x = event.offsetX;
-            this.selected.y = event.offsetY;
+        var x = event.offsetX;
+        var y = event.offsetY;
+        if (this.selected != []) {
+            var dx = x - this.orig_x;
+            var dy = y - this.orig_y;
+            for (var i=0; i<this.selected.length; i++) {
+                var node = this.selected[i];
+                var x0 = this.orig_pos[i].x;
+                var y0 = this.orig_pos[i].y;
+                node.x = x0 + dx;
+                node.y = y0 + dy;
+            }
         }
     }
 
     cleanup() {
-        if (this.selected !== null) {
-            this.selected.info.selected = false;
-            this.selected = null;
+        if (this.selected != []) {
+            for (const node of this.selected) {
+                node.info.selected = false;
+            }
+            this.selected = [];
+            this.orig_pos = [];
+            this.orig_x = null;
+            this.orig_y = null;
         }
     }
 
@@ -50,9 +86,9 @@ export class DeleteMode {
     mousedown(event) {
         var x = event.offsetX;
         var y = event.offsetY;
-        // delete "topmost result"
-        var [sets, edges, nodes] = this.graph.clicked(x,y);
-        var clicked = sets.concat(edges).concat(nodes);
+        // delete "simplest" thing first when there are many choices
+        var [nodes, edges, sets] = this.graph.clicked(x,y);
+        var clicked = nodes.concat(edges).concat(sets);
         console.log("trying to delete");
         if (clicked.length > 0) {
             clicked[0].delete();

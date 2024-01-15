@@ -88,7 +88,7 @@ export class Graph {
             }
         }
 
-        return [sets, edges, nodes];
+        return [nodes, edges, sets];
     }
 
     draw(canvas) {
